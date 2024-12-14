@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 58bc53f0eb862ab47b42ff907a24abaf
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames:
+  - Cattedrale [RUS by penka220]
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: caa95a6142c8b1c48b2b23a249167848, type: 3}
+  - {fileID: 12800000, guid: 81dc25307b7d5a24da1f855a4ab6d581, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
