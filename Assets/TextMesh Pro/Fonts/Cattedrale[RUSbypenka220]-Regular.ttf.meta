@@ -10,8 +10,7 @@ TrueTypeFontImporter:
   includeFontData: 1
   fontNames:
   - Cattedrale [RUS by penka220]
-  fallbackFontReferences:
-  - {fileID: 12800000, guid: 81dc25307b7d5a24da1f855a4ab6d581, type: 3}
+  fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0
   ascentCalculationMode: 1

@@ -324,7 +324,7 @@ public class TextArchitect
             // И увеличиваем макс диапозон, но для начала делаем проверку
             bool lastCharacterIsInvisible = !textInfo.characterInfo[maxRange - 1].isVisible;
 
-            // Делаем проверку последнего символа на ytвидимость или его прозрачность превышает порог
+            // Делаем проверку последнего символа на видимость или его прозрачность превышает порог
             if (alphas[maxRange - 1] > alphaThreshold || lastCharacterIsInvisible)
             {
                 // То мы увеличиваем диапозон
