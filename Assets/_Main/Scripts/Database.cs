@@ -9,15 +9,22 @@ public class Database : MonoBehaviour
     public string PreparationText { get; private set; }
     public List<ListQuestions> AllListQuestions { get; private set; }
     public List<Quest> AllQuests { get; private set; }
+    public GameObject LastPage { get; set; }
+    public bool IsQuestCamOn { get; set; }
     public bool IsNewGame { get; set; }
     public bool IsInterview { get; set; }
+    public Quest CurQuest { get; set; }
+    // Ссылка на объект навигации меню
+    public GameObject Navigation;
 
     // Start is called before the first frame update
-    void Start()
+    // Заменил Start на Awake, чтобы сработали функции и присвоение эл-ов, для работы как с БД
+    void Awake()
     {
         // Объявление
         AllListQuestions = new List<ListQuestions>();
         AllQuests = new List<Quest>();
+        IsQuestCamOn = true;
         IsNewGame = false;
         IsInterview = false;
 
@@ -34,6 +41,9 @@ public class Database : MonoBehaviour
             "Выберите вопросы, которые спросите у заказчика, чтобы узнать подробности квеста.\n\n" +
             "Перетащите выбранные вопросы из левой области, где представлены все доступные вопросы, в правую область.\n\n" +
             "Будьте внимательны! Выбирайте с умом.";
+
+        // Делаем 1-ый квест (по умолчанию) выбранным
+        CurQuest = AllQuests[0];
     }
 
     void AddQuests()
@@ -47,6 +57,13 @@ public class Database : MonoBehaviour
             "Сам он не успеет собрать весь свой урожай до этого времени, а сын должен уехать на ярмарку с урожаем, часть из которого до сих пор не собрана.\n\n" +
             "Нужная ваша помощь.",
             "предсказателя погоды предупреждение;не успеет собрать;этого времени;часть;не собрана",
+            0
+            ));
+        AllQuests.Add(new Quest(
+            AllQuests.Count,
+            "Помощь охотнику",
+            "Охотник",
+            "Данный квест ещё в разработке...",
             1
             ));
     }
@@ -88,6 +105,11 @@ public class Database : MonoBehaviour
             "Я надевая шляпу в солнечные дни и ботинки, когла собираю тыкву.;" +
             "Сын сможет помочь в первый день.|" +
             "Помощники придут на четвёртый день."
+            ));
+        AllListQuestions.Add(new ListQuestions(
+            AllListQuestions.Count,
+            "",
+            ""
             ));
     }
     // Update is called once per frame

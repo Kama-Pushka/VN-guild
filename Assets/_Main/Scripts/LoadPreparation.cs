@@ -48,14 +48,21 @@ public class LoadPreparation : MonoBehaviour
 
             Db.IsNewGame = true;
         }
-        if (Db.IsNewGame && Db.IsInterview)
+        if (Db.IsInterview)
         {
             result = Db.PreparationText.Split(";");
             head.text = result[0];
             content.text = result[1];
             btn.alignment = TextAlignmentOptions.MidlineRight;
             btn.text = "Продолжить";
-            Db.IsNewGame = true;
         }
+    }
+    public void Updater()
+    {
+        if (Db.IsNewGame)
+        {
+            Update();
+        }
+
     }
 }

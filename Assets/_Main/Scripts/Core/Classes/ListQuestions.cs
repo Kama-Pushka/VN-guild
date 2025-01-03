@@ -27,6 +27,7 @@ public class ListQuestions
     public string AllQuestions { get; private set; }
     public string AllAnswers { get; private set; }
     public string Notes { get; set; }
+    public string DefaultQuestionCharacter { get; private set; }
     public Dictionary<int, string> DictAllQuestions { get; private set; }
     public Dictionary<int, string> DictAllAnswers { get; private set; }
     public Dictionary<int, string> DictNotes { get; private set; }
@@ -38,6 +39,7 @@ public class ListQuestions
         AllQuestions = allQuestions;
         AllAnswers = allAnswers;
         Notes = "";
+        DefaultQuestionCharacter = "Ну, спрашивай, что ещё хочешь узнать?";
         DictAllQuestions = new Dictionary<int, string>();
         DictAllAnswers = new Dictionary<int, string>();
         DictNotes = new Dictionary<int, string>();

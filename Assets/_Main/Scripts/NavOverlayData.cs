@@ -8,15 +8,14 @@ public class NavOverlayData : MonoBehaviour
     // Область для хранения ссылок на все страницы
     public GameObject[] AllPages;
     public GameObject CurrentPage;
-
-    // page.activeInHierarchy - отвечает за скрытие/показ объекта
-    // Флаг для проверки
-    //bool IsCheckAllPages = false;
+    public GameObject Database;
+    [SerializeField]
+    GameObject LayersPage;
 
     // Start is called before the first frame update
     void Start()
     {
-        //
+        //LayersPage.SetActive(false);
     }
 
     // Update is called once per frame
