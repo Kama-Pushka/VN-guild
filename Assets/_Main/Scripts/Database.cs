@@ -10,6 +10,7 @@ public class Database : MonoBehaviour
     public List<ListQuestions> AllListQuestions { get; private set; }
     public List<Quest> AllQuests { get; private set; }
     public GameObject LastPage { get; set; }
+    public int SelectQuestionKey { get; set;}
     public bool IsQuestCamOn { get; set; }
     public bool IsNewGame { get; set; }
     public bool IsInterview { get; set; }
@@ -27,6 +28,7 @@ public class Database : MonoBehaviour
         IsQuestCamOn = true;
         IsNewGame = false;
         IsInterview = false;
+        SelectQuestionKey = -1;
 
         // Функции заполнения данных
         AddListQuestions();
