@@ -81,12 +81,17 @@ public class NavPageButtons : MonoBehaviour
         // также это поможет вернуться при переходе, между камерами.
 
         NavData.CurrentPage.SetActive(false);
-        Debug.Log($"Nav.CurPage = {NavData.CurrentPage}");
-        //Db.LastPage = NavData.CurrentPage;
-        //NavData.CurrentPage = nextPage;
 
-        //Debug.Log($"lastPage = {Db.LastPage}");
-        //Debug.Log($"NavData.CurPage = {NavData.CurrentPage}");
+        Db.LastPage = NavData.CurrentPage;
+        NavData.CurrentPage = nextPage;
+
+        //Debug.Log($"ClickOnPage = {NavData.CurrentPage}");
+        //Debug.Log($"Db.LastPage = {Db.LastPage}");
+        //Debug.Log($"Nav.CurPage = {NavData.CurrentPage}");
+
+        // Блок для отключения Canvas - Overlay, чтобы работали btn-ы
+        GameObject canvOver = Db.transform.parent.transform.GetChild(2).gameObject;
+        GameObject canvQuest = Db.transform.parent.transform.GetChild(1).gameObject;
 
         // Работает
         if (Db.IsQuestCamOn)
@@ -95,6 +100,11 @@ public class NavPageButtons : MonoBehaviour
             LinkQuestCamera.SetActive(true);
             LinkOverlayCamera.SetActive(false);
             Db.IsQuestCamOn = false;
+            // Отключение Over канвы
+            canvOver.SetActive(false);
+            canvQuest.SetActive(true);
+            //Debug.Log($"canvOver = {canvOver.activeInHierarchy}");
+            //Debug.Log($"canvQuest = {canvQuest.activeInHierarchy}");
         }
         else
         {
@@ -102,6 +112,9 @@ public class NavPageButtons : MonoBehaviour
             LinkQuestCamera.SetActive(false);
             LinkOverlayCamera.SetActive(true);
             Db.IsQuestCamOn = true;
+            // Отключение Quest канвы
+            canvOver.SetActive(true);
+            canvQuest.SetActive(false);
         }
     }
     /// <summary>
@@ -115,12 +128,21 @@ public class NavPageButtons : MonoBehaviour
     public void OnQuestClick(TextMeshProUGUI tmp)
     {
         // Выделяем переменные для работы с нумерацией квеста
-        // (Забрать номер из названия, но попадаем к gameObject-у по transform.parent)
+        // (Забрать номер из названия "Quest - 0" и попадаем к gameObject-у по transform.parent)
         string[] splitName = tmp.gameObject.transform.parent.gameObject.name.Split(' ');
         int takeNumQuest = int.Parse(splitName[splitName.Length - 1]);
 
         // Сохраняем текущий нажатый квест, для вывода справа, на страницу Choose Quest
         Db.CurQuest = Db.AllQuests[takeNumQuest];
+    }
+    /// <summary>
+    /// Функция обработки клика на вопрос, для сохранения Uid вопроса в квесте.
+    /// </summary>
+    /// <param name="tmp">Берём TMP объект, чтобы было проще обращаться к его .name компоненту</param>
+    public void OnQuestionClick(GameObject btn)
+    {
+        string[] str = btn.name.Split(" ");
+        Db.SelectQuestionKey = int.Parse(str[1]);
     }
 
     // Update is called once per frame

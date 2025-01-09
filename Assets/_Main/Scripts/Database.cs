@@ -10,6 +10,7 @@ public class Database : MonoBehaviour
     public List<ListQuestions> AllListQuestions { get; private set; }
     public List<Quest> AllQuests { get; private set; }
     public GameObject LastPage { get; set; }
+    public int SelectQuestionKey { get; set;}
     public bool IsQuestCamOn { get; set; }
     public bool IsNewGame { get; set; }
     public bool IsInterview { get; set; }
@@ -27,6 +28,7 @@ public class Database : MonoBehaviour
         IsQuestCamOn = true;
         IsNewGame = false;
         IsInterview = false;
+        SelectQuestionKey = -1;
 
         // Функции заполнения данных
         AddListQuestions();
@@ -108,8 +110,14 @@ public class Database : MonoBehaviour
             ));
         AllListQuestions.Add(new ListQuestions(
             AllListQuestions.Count,
-            "",
-            ""
+            "Вопрос 1;" +
+            "Вопрос 2;" +
+            "Вопрос 3;" +
+            "Вопрос 4",
+            "Ответ 1;" +
+            "Ответ 2;" +
+            "Ответ 3;" +
+            "Ответ 4"
             ));
     }
     // Update is called once per frame
