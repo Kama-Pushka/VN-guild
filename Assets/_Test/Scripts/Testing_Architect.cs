@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.WebSockets;
 using TMPro;
 using UnityEngine;
@@ -34,19 +35,18 @@ namespace Testing
 
         // Uid списка квестов и счётчик
         int KeyListQuestions {  get; set; }
-        int StartKeyAnswer { get; set; }
-        bool IsEndOutText { get; set; }
-        Dictionary<int, int> DictSelectedQuestions { get; set; }
 
-        // Текст для проверки
-        //string[] lines = new string[5]
-        //{
-        //    "Это рандомная диалоговая линия.",
-        //    "Я хочу тебе что-то сказать.",
-        //    "Этот мир имеет сумашедшии места.",
-        //    "Не растраивайся, будь сильнее!",
-        //    "Эта птица? Это самолёт? Нет! - Это Супер Шелти!"
-        //};
+        // Счётчик для прохождения по ответам
+        int StartKeyAnswer { get; set; }
+
+        // Флаг для добавления выбранных вопросов в список, без цикличности (как ограничитель)
+        bool IsAddSelectedKey { get; set; }
+        // Строка для сравнения последнего полученного текста
+        public string LastContentText { get; set; }
+        //Dictionary<int, int> DictSelectedQuestions { get; set; }
+
+        // Для тестирования
+        public bool CheckIf = false;
 
         // Start is called before the first frame update
         void Start()
@@ -61,10 +61,17 @@ namespace Testing
             //architect.speed = 0.5f;
 
             // Dictionary выбранных вопросов, чтобы появлялись следующие, из обекта ListQuestions
-            DictSelectedQuestions = new Dictionary<int, int>();
+            Db.DictKeySelectedQustion = new Dictionary<int, int>();
+            Db.CountQuestionsReplacement = 0;
 
             // Счётчик для нажатия клавиши Space (Вывод ответа на вопрос в опр. порядке)
             StartKeyAnswer = 0;
+
+            // По умолчанию false
+            IsAddSelectedKey = false;
+
+            // Обозначим Content по умолчанию
+            setDefaultContent();
         }
 
         // Update is called once per frame
@@ -78,13 +85,6 @@ namespace Testing
 
             // Получаем список вопросов с помощью KeyListQuestions
             CurListQuestions = Db.AllListQuestions[KeyListQuestions];
-            
-            //Вывод сообщения Character по умолчанию
-            if (!IsEndOutText)
-            {
-                Content.text = CurListQuestions.DefaultQuestionCharacter;
-                IsEndOutText = true;
-            }
 
             // Заполняем раздел вопросов (макс 4)
             for (int i = 0; i < 4; i++)
@@ -93,38 +93,21 @@ namespace Testing
                 TextMeshProUGUI tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
                 
                 // Первичная загрузка 4 вопросов
-                // Error - 1
-                if (DictSelectedQuestions.Count == 0)
+                if (Db.DictKeySelectedQustion.Count == 0)
                 {
                     tmp.text = CurListQuestions.DictAllQuestions[i];
                 }
                 
-                // Выбрали вопрос
-                if (Db.SelectQuestionKey != -1)
+                // Обновляем список вопросов
+                if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey)
                 {
-                    // Добавляем текущий вопрос с ключём
-                    //DictSelectedQuestions.Add(Db.SelectQuestionKey, CurListQuestions.DictAllQuestions[i]);
-                    DictSelectedQuestions.Add(DictSelectedQuestions.Count, i);
-
-                    // Пересобираем список квестов
-                    //
-
-                    // Далее должен вызываться архитектор текста с ответами и список вопросов должен скрыться на время
-                    LinkListQuestions.SetActive(false);
-                }
-
-                // Если вопрос не выбран, то возвращаем видимость списка вопросов
-                if (Db.SelectQuestionKey == -1)
-                {
-                    LinkListQuestions.SetActive(true);
-                    IsEndOutText = false;
+                    IsAddSelectedKey = true;
                 }
             }
 
             if (bm != architect.buildMethod)
             {
                 architect.buildMethod = bm;
-                IsEndOutText = false;
                 architect.Stop();
             }
 
@@ -134,16 +117,42 @@ namespace Testing
             //    architect.Stop();
             //}
 
-            // Строка для теста текста с ускорением
-            //string longLine = "Это очень длинная строка! Она не имеет никакого смысла и нужная чисто для проверки всякой разной всячины." +
-            //    " Не спрашивайте зачем мне нужна данная очень длинная строка. Я вообще хз, зачем она тут! И да, я не люблю очень большое кол-во текста." +
-            //    " Я попросту устаю читать!";
+            // Условие для обновления Content при достижении конца или перехода к следующему ответу
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                // Если всего 1 ответ, то при нажатии на Space, мы оновляем поле Content
+                // Ошибка в том, что Btn Object выделен и вызывается повторно!!!
+                if (Db.SelectQuestionKey == -1)
+                {
+                    //Debug.Log($"Вызов setDefault при нажатии на Space : {Db.SelectQuestionKey} =? -1");
+                    setDefaultContent();
 
-            // if (Input.GetKeyDown(KeyCode.Space))
+                    // Возвращаем флаг к исходному состоянию
+                    IsAddSelectedKey = false;
+
+                    // Включаем список вопросов
+                    //LinkListQuestions.SetActive(true);
+                }
+
+                // Если ответов несколько, то при нажатии на Space, мы переходим дальше
+                if (Db.SelectQuestionKey != -1)
+                {
+                    StartKeyAnswer++;
+
+                    // Выключаем список вопросов
+                    //LinkListQuestions.SetActive(false);
+                }
+            }
             
-            // Настраиваем управление (Вывод текста персонажем)
+            // Работает при запуске игры
+            //Debug.Log($"SelectQuestionKey! {Db.SelectQuestionKey}");
+
+            // Настраиваем управление (Вывод ответов персонажем)
             if (Db.SelectQuestionKey != -1)
             {
+                // Выключаем список вопросов
+                LinkListQuestions.SetActive(false);
+
                 if (architect.isBuilding)
                 {
                     // Ускорение при повторном нажатии
@@ -154,70 +163,72 @@ namespace Testing
                     else
                     {
                         architect.ForceComplete();
-                        //Debug.Log($"Завершился вывод?");
                     }
                 }
                 else
                 {
-                    // Отправляем архитектору текста наши ответы на вопросы. (Не доделано!)
-                    // Так как нужно это всё свзать с вопросами, а привязки пока что нету.
-                    if (Db.SelectQuestionKey == -1)
+                    // Тут скрывается блок вопросов и выводится 1-ый ответ на вопрос
+                    string answerStr = CurListQuestions.DictAllAnswers[Db.SelectQuestionKey];
+                    if (answerStr.Contains("|"))
                     {
-                        string outTextContent = Db.AllListQuestions[KeyListQuestions].DefaultQuestionCharacter;
-                        architect.Build(outTextContent);
+                        // Список ответов
+                        string[] outAllAnswer = CurListQuestions.getFullAnswersFromStrDict(answerStr);
+
+                        // Ограничение вывода ответов, чтобы не уйти за список
+                        if (StartKeyAnswer < outAllAnswer.Count())
+                        {
+                            string answer = outAllAnswer[StartKeyAnswer];
+                            if (answer != LastContentText)
+                            {
+                                architect.Build(answer);
+                                LastContentText = answer;
+                            }
+                        }
+                        else if (StartKeyAnswer == outAllAnswer.Count())
+                        {
+                            // Заканчиваем печатать ответов
+                            Db.SelectQuestionKey = -1;
+                        }
                     }
                     else
                     {
-                        // (Не доделано!)
-                        // Тут скрывается блок вопросов и выводятся ответы по порядку
-                        string answerStr = CurListQuestions.DictAllAnswers[Db.SelectQuestionKey];
-                        if (answerStr.Contains("|"))
-                        {
-                            string[] outAllAnswer = CurListQuestions.getFullAnswersFromStrDict(answerStr);
-                            bool IsFirstAnswer = true;
-                            for (int i = 0; i < outAllAnswer.Length;)
-                            {
-                                if (IsFirstAnswer)
-                                {
-                                    architect.Build(outAllAnswer[i]);
-                                    Debug.Log($"str[_0_] = {outAllAnswer[i]}");
-                                    i++;
-                                    IsFirstAnswer = false;
-                                    continue;
-                                }
-                                else
-                                {
-                                    if (Input.GetKeyDown(KeyCode.Space))
-                                    {
-                                        architect.Build(outAllAnswer[i]);
-                                        Debug.Log($"str[{i}] = {outAllAnswer[i]}");
-                                        i++;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            architect.Build(answerStr);
-                            Debug.Log($"str = {answerStr}");
-                        }
+                        architect.Build(answerStr);
 
-                        // Заканчиваем печатать ответы
+                        LastContentText = answerStr;
+
+                        // Заканчиваем печатать ответа
                         Db.SelectQuestionKey = -1;
-                    }
-                    //string outText = CurListQuestions.DictAllAnswers[StartKeyAnswer];
-                    //architect.Build(outText);
-                    //Debug.Log($"outText  = {outText}");
 
-                    //architect.Build(lines[Random.Range(0, lines.Length)]);
+                        // Выключаем список вопросов
+                        //LinkListQuestions.SetActive(false);
+                    }
                 }
-                // Дополнительное добавление строк в Content (Работает с условием на нажатие кнопки)
-                //else if (Input.GetKeyDown(KeyCode.A))
-                //{
-                //    architect.Append(longLine);
-                //    //architect.Append(lines[Random.Range(0, lines.Length)]);
-                //}
             }
+            else if (Db.SelectQuestionKey == -1)
+            {
+                // Включаем список вопросов
+                LinkListQuestions.SetActive(true);
+            }
+
+            // Дополнительное добавление строк в Content (Работает с условием на нажатие кнопки)
+            //else if (Input.GetKeyDown(KeyCode.A))
+            //{
+            //    architect.Append(longLine);
+            //    //architect.Append(lines[Random.Range(0, lines.Length)]);
+            //}
+        }
+        /// <summary>
+        /// Функция для возвращения блока Content в исходное состояние, чтобы не было проблем с TextArchitect
+        /// (И я не знаю, что приводит к сбоям, так как я перепробывал Абсолютно Всё! Механику, условия и тд.)
+        /// </summary>
+        void setDefaultContent()
+        {
+            string str = Db.AllListQuestions[0].DefaultQuestionCharacter;
+            architect.Build(str);
+            // Обновляем последний введённый текст
+            LastContentText = str;
+            // Обнуляем счётчик
+            StartKeyAnswer = 0;
         }
     }
 }

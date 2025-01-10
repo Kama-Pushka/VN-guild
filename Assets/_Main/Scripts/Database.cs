@@ -10,7 +10,9 @@ public class Database : MonoBehaviour
     public List<ListQuestions> AllListQuestions { get; private set; }
     public List<Quest> AllQuests { get; private set; }
     public GameObject LastPage { get; set; }
-    public int SelectQuestionKey { get; set;}
+    public int SelectQuestionKey { get; set; }
+    public Dictionary<int, int> DictKeySelectedQustion { get; set; }
+    public int CountQuestionsReplacement { get; set; }
     public bool IsQuestCamOn { get; set; }
     public bool IsNewGame { get; set; }
     public bool IsInterview { get; set; }

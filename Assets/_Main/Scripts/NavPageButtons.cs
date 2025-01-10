@@ -134,6 +134,18 @@ public class NavPageButtons : MonoBehaviour
 
         // Сохраняем текущий нажатый квест, для вывода справа, на страницу Choose Quest
         Db.CurQuest = Db.AllQuests[takeNumQuest];
+
+        // Также обновляем список выбранных вопросов, для выбранного квеста (Без всяких доп. ластов объектов)
+        Db.DictKeySelectedQustion.Clear();
+        Db.CountQuestionsReplacement = 0;
+
+        // Записываем 1-ые 4-е вопроса, для будущей работы механики замены
+        // (Чтобы начальные, не выбранные вопросы, не заменялись сами на себя)
+        for (int i = 0; i < 4; i++)
+        {
+            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count(), i);
+            //Debug.Log($"Dict[{i}] = {Db.DictKeySelectedQustion[i]}");
+        }
     }
     /// <summary>
     /// Функция обработки клика на вопрос, для сохранения Uid вопроса в квесте.
@@ -143,6 +155,69 @@ public class NavPageButtons : MonoBehaviour
     {
         string[] str = btn.name.Split(" ");
         Db.SelectQuestionKey = int.Parse(str[1]);
+
+        // Проверка перед добавлением ключа к Dictionary
+        bool IsNotFirstKey = false;
+        foreach (var val in Db.DictKeySelectedQustion.Values)
+        {
+            if (val == Db.SelectQuestionKey)
+                IsNotFirstKey = true;
+        }
+        // Добавляем, если это уникальный ключ
+        if (!IsNotFirstKey)
+            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count, Db.SelectQuestionKey);
+
+        // Инфо для дебагера (тесты)
+        //Debug.Log($"Dict.Count() = {Db.DictKeySelectedQustion.Count}");
+
+        // Получаем нужный список вопросов
+        int keyListQuestions = Db.CurQuest.ID_ListQuestions;
+        var curListQuestions = Db.AllListQuestions[keyListQuestions];
+
+        // Получаем нужный нам Count-ры и вычисляем разницу, для условия
+        int countSelectDict = Db.DictKeySelectedQustion.Count();
+        int countQuestionsDict = curListQuestions.DictAllQuestions.Count();
+        int mathDifferenceCountDicts = (countQuestionsDict - 4);
+
+        // Если счётчик замены не достиг разницы mathDifferenceCountDicts
+        // то мы делаем замену вопроса в списке вопросов
+        // иначе вопрос скрывается
+        if (Db.CountQuestionsReplacement < mathDifferenceCountDicts)
+        {
+            bool IsFoundNewQuestions = false;
+
+            // Где-то тут ошибка в работе словарей... Надо перепроверить...
+
+            // Делаем замену названия кнопки и вопроса
+            foreach (var val in Db.DictKeySelectedQustion.Values)
+            {
+                foreach (var item in curListQuestions.DictAllQuestions)
+                {
+                    if (item.Key != val)
+                    {
+                        // Инфо для дебагера (тесты)
+                        //Debug.Log($"item.Key = {item.Key}");
+                        //Debug.Log($"val = {val}");
+                        // Смена имени + ключ вопроса
+                        btn.name = "Question " + item.Key;
+                        // Получаем tmp obj и делаем смену вопроса
+                        var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+                        tmp.text = item.Value;
+
+                        Db.CountQuestionsReplacement++;
+                        IsFoundNewQuestions = true;
+                        break;
+                    }
+                }
+                // Останавливаем работу цикла, после нахождения замены
+                if (IsFoundNewQuestions)
+                    break;
+            }
+        }
+        else
+        {
+            btn.SetActive(false);
+        }
     }
 
     // Update is called once per frame

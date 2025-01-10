@@ -121,17 +121,23 @@ public class TextArchitect
         hurryUp = false;
     }
     // Метод для проверки завершённости построения текста
+    // Изначально был void и не имел result
+    // также было tmpro.maxVisibleCharacters = tmpro.textInfo.characterCount;
     public void ForceComplete()
     {
+        //bool result = false;
         switch(buildMethod)
         {
             case BuildMethod.typewriter:
                 tmpro.maxVisibleCharacters = tmpro.textInfo.characterCount;
+                //result = tmpro.maxVisibleCharacters == tmpro.textInfo.characterCount;
+                //tmpro.ForceMeshUpdate();
                 break;
             case BuildMethod.fade:
                 tmpro.ForceMeshUpdate();
                 break;
         }
+        //return result;
     }
     // Метод подготовки, в зависимости от выбранного нами построения текста
     private void Prepare()
