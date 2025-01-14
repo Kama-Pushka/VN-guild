@@ -7,15 +7,21 @@ public class Database : MonoBehaviour
     // Нужен string объект для вкладки "Подготовка"
     public string StartingText { get; private set; }
     public string PreparationText { get; private set; }
+    public string EndInterviewText { get; private set; }
     public List<ListQuestions> AllListQuestions { get; private set; }
     public List<Quest> AllQuests { get; private set; }
     public GameObject LastPage { get; set; }
     public int SelectQuestionKey { get; set; }
     public Dictionary<int, int> DictKeySelectedQustion { get; set; }
     public int CountQuestionsReplacement { get; set; }
+    public NavPageButtons LinkNavPageBtnGameObject { get; set; }
+
+    // Счётчик для завершения этапа интервью (временный костыль)
+    public int CountEntrace {  get; set; }
     public bool IsQuestCamOn { get; set; }
     public bool IsNewGame { get; set; }
     public bool IsInterview { get; set; }
+    public bool IsEndInterview { get; set; }
     public Quest CurQuest { get; set; }
     // Ссылка на объект навигации меню
     public GameObject Navigation;
@@ -30,7 +36,11 @@ public class Database : MonoBehaviour
         IsQuestCamOn = true;
         IsNewGame = false;
         IsInterview = false;
+        IsEndInterview = false;
         SelectQuestionKey = -1;
+
+        // Временный костыль
+        CountEntrace = 0;
 
         // Функции заполнения данных
         AddListQuestions();
@@ -45,6 +55,10 @@ public class Database : MonoBehaviour
             "Выберите вопросы, которые спросите у заказчика, чтобы узнать подробности квеста.\n\n" +
             "Перетащите выбранные вопросы из левой области, где представлены все доступные вопросы, в правую область.\n\n" +
             "Будьте внимательны! Выбирайте с умом.";
+
+        EndInterviewText = "Завершение интервью;" +
+            "Поздравляем! Вы успешно провели интервью.\n\n" +
+            "Теперь вы готовы перейти к следующему этапу - заполнение брифа.";
 
         // Делаем 1-ый квест (по умолчанию) выбранным
         CurQuest = AllQuests[0];

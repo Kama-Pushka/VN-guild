@@ -22,12 +22,19 @@ public class NavPageButtons : MonoBehaviour
     // Взятие компонента из ссылок
     Database Db { get; set; }
     NavOverlayData NavData { get; set; }
-    
+    GameObject CanvasOver {  get; set; }
+    GameObject CanvasQuest { get; set; }
+
     // Start is called before the first frame update
     void Start()
     {
         Db = LinkDatabase.GetComponent<Database>();
         NavData = LinkNavBar.GetComponent<NavOverlayData>();
+
+        // Блок для отключения Canvas - Overlay, чтобы работали btn-ы
+        // В начале переходим к Root, а от него к Canvas-ам
+        CanvasOver = Db.transform.parent.transform.GetChild(2).gameObject;
+        CanvasQuest = Db.transform.parent.transform.GetChild(1).gameObject;
 
         // Порядок камер при запуске игры
         LinkQuestCamera.SetActive(false);
@@ -70,7 +77,7 @@ public class NavPageButtons : MonoBehaviour
         }
     }
     /// <summary>
-    /// Функция для перехода между камерами с помощью флага IsQuestCamOn из Database (Db)
+    /// Функция для перехода между камерами с помощью флага IsQuestCamOn из Database (Db). Также отвечает за сохранение 1-ых 4-ёх вопросов квеста
     /// </summary>
     /// <param name="Db.IsQuestCamOn">По умолчанию = true</param>
     public void OnChangeCameraClick(GameObject nextPage)
@@ -85,37 +92,23 @@ public class NavPageButtons : MonoBehaviour
         Db.LastPage = NavData.CurrentPage;
         NavData.CurrentPage = nextPage;
 
+        // Тесты
         //Debug.Log($"ClickOnPage = {NavData.CurrentPage}");
         //Debug.Log($"Db.LastPage = {Db.LastPage}");
         //Debug.Log($"Nav.CurPage = {NavData.CurrentPage}");
 
-        // Блок для отключения Canvas - Overlay, чтобы работали btn-ы
-        GameObject canvOver = Db.transform.parent.transform.GetChild(2).gameObject;
-        GameObject canvQuest = Db.transform.parent.transform.GetChild(1).gameObject;
+        // Обнуление при переходе
+        Db.DictKeySelectedQustion.Clear();
+        Db.CountQuestionsReplacement = 0;
+        Db.CountEntrace = 0;
 
-        // Работает
-        if (Db.IsQuestCamOn)
-        {
-            // Порядок камер при запуске игры
-            LinkQuestCamera.SetActive(true);
-            LinkOverlayCamera.SetActive(false);
-            Db.IsQuestCamOn = false;
-            // Отключение Over канвы
-            canvOver.SetActive(false);
-            canvQuest.SetActive(true);
-            //Debug.Log($"canvOver = {canvOver.activeInHierarchy}");
-            //Debug.Log($"canvQuest = {canvQuest.activeInHierarchy}");
-        }
-        else
-        {
-            // Переход к камере с квестами
-            LinkQuestCamera.SetActive(false);
-            LinkOverlayCamera.SetActive(true);
-            Db.IsQuestCamOn = true;
-            // Отключение Quest канвы
-            canvOver.SetActive(true);
-            canvQuest.SetActive(false);
-        }
+        // Сохраняем 1-ые 4 вопроса, для этапа игры "Интервью"
+        for (int i = 0; i < 4; i++)
+            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count(), i);
+
+        // Вызываем функцию смены камеры и перехода от текущего Canvas объекта, к следующему Canvas объекту
+        ChangeCamera();
+        
     }
     /// <summary>
     /// Функция завершения игры
@@ -134,41 +127,20 @@ public class NavPageButtons : MonoBehaviour
 
         // Сохраняем текущий нажатый квест, для вывода справа, на страницу Choose Quest
         Db.CurQuest = Db.AllQuests[takeNumQuest];
-
-        // Также обновляем список выбранных вопросов, для выбранного квеста (Без всяких доп. ластов объектов)
-        Db.DictKeySelectedQustion.Clear();
-        Db.CountQuestionsReplacement = 0;
-
-        // Записываем 1-ые 4-е вопроса, для будущей работы механики замены
-        // (Чтобы начальные, не выбранные вопросы, не заменялись сами на себя)
-        for (int i = 0; i < 4; i++)
-        {
-            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count(), i);
-            //Debug.Log($"Dict[{i}] = {Db.DictKeySelectedQustion[i]}");
-        }
     }
     /// <summary>
     /// Функция обработки клика на вопрос, для сохранения Uid вопроса в квесте.
     /// </summary>
-    /// <param name="tmp">Берём TMP объект, чтобы было проще обращаться к его .name компоненту</param>
+    /// <param name="btn">Берём Button объект, чтобы было проще обращаться к его .name компоненту</param>
     public void OnQuestionClick(GameObject btn)
     {
         string[] str = btn.name.Split(" ");
         Db.SelectQuestionKey = int.Parse(str[1]);
 
-        // Проверка перед добавлением ключа к Dictionary
-        bool IsNotFirstKey = false;
-        foreach (var val in Db.DictKeySelectedQustion.Values)
-        {
-            if (val == Db.SelectQuestionKey)
-                IsNotFirstKey = true;
-        }
-        // Добавляем, если это уникальный ключ
-        if (!IsNotFirstKey)
-            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count, Db.SelectQuestionKey);
-
-        // Инфо для дебагера (тесты)
-        //Debug.Log($"Dict.Count() = {Db.DictKeySelectedQustion.Count}");
+        // Алгоритм работы функции после выбора вопроса:
+        // 1) Для начала мы перебираем словарь всех вопросов;
+        // 2) Находим не добавленный ключ вопроса из Db.DictKeySelectedQustion;
+        // 3) Добавляем этот ключ и выводим в список вопросов, как новый оставшийся вопрос;
 
         // Получаем нужный список вопросов
         int keyListQuestions = Db.CurQuest.ID_ListQuestions;
@@ -179,6 +151,9 @@ public class NavPageButtons : MonoBehaviour
         int countQuestionsDict = curListQuestions.DictAllQuestions.Count();
         int mathDifferenceCountDicts = (countQuestionsDict - 4);
 
+        // Счётчик нажатий на вопрос (Временный костыль)
+        Db.CountEntrace++;
+
         // Если счётчик замены не достиг разницы mathDifferenceCountDicts
         // то мы делаем замену вопроса в списке вопросов
         // иначе вопрос скрывается
@@ -186,37 +161,73 @@ public class NavPageButtons : MonoBehaviour
         {
             bool IsFoundNewQuestions = false;
 
-            // Где-то тут ошибка в работе словарей... Надо перепроверить...
-
             // Делаем замену названия кнопки и вопроса
-            foreach (var val in Db.DictKeySelectedQustion.Values)
+            // В начале перебираем все вопросы, из основного словаря вопросов
+            foreach (var item in curListQuestions.DictAllQuestions)
             {
-                foreach (var item in curListQuestions.DictAllQuestions)
-                {
-                    if (item.Key != val)
-                    {
-                        // Инфо для дебагера (тесты)
-                        //Debug.Log($"item.Key = {item.Key}");
-                        //Debug.Log($"val = {val}");
-                        // Смена имени + ключ вопроса
-                        btn.name = "Question " + item.Key;
-                        // Получаем tmp obj и делаем смену вопроса
-                        var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-                        tmp.text = item.Value;
+                // Проверка на наличие ключа, в словаре выбранных вопросов
+                IsFoundNewQuestions = Db.DictKeySelectedQustion.Values.Contains(item.Key);
 
-                        Db.CountQuestionsReplacement++;
-                        IsFoundNewQuestions = true;
-                        break;
-                    }
-                }
-                // Останавливаем работу цикла, после нахождения замены
-                if (IsFoundNewQuestions)
+                // Тесты
+                //Debug.Log($"IsFoundNewQuestions = {IsFoundNewQuestions} and item.key = {item.Key}");
+                
+                if (!IsFoundNewQuestions)
+                {
+                    // Смена имени + ключ вопроса
+                    btn.name = "Question " + item.Key;
+
+                    // Получаем tmp obj и делаем смену вопроса
+                    var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+                    tmp.text = item.Value;
+
+                    // Счётчик для работы условия + сохранение нового вопроса
+                    Db.CountQuestionsReplacement++;
+                    Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count, item.Key);
                     break;
+                }
             }
         }
         else
         {
             btn.SetActive(false);
+        }
+
+        // Сохраняем ссылку на объект для перехода к следующему этапу игры
+        if (Db.CountEntrace == countQuestionsDict)
+        {
+            Db.LinkNavPageBtnGameObject = this;
+        }
+    }
+    /// <summary>
+    /// Функция для смены камер и Canvas объектов
+    /// </summary>
+    public void ChangeCamera()
+    {
+        // Работает
+        if (Db.IsQuestCamOn)
+        {
+            // Порядок камер при запуске игры
+            LinkQuestCamera.SetActive(true);
+            LinkOverlayCamera.SetActive(false);
+            Db.IsQuestCamOn = false;
+
+            // Отключение Over канвы
+            CanvasOver.SetActive(false);
+            CanvasQuest.SetActive(true);
+
+            //Debug.Log($"canvOver = {canvOver.activeInHierarchy}");
+            //Debug.Log($"canvQuest = {canvQuest.activeInHierarchy}");
+        }
+        else
+        {
+            // Переход к камере с квестами
+            LinkQuestCamera.SetActive(false);
+            LinkOverlayCamera.SetActive(true);
+            Db.IsQuestCamOn = true;
+
+            // Отключение Quest канвы
+            CanvasOver.SetActive(true);
+            CanvasQuest.SetActive(false);
         }
     }
 

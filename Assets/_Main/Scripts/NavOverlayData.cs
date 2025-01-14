@@ -21,6 +21,8 @@ public class NavOverlayData : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Предполагаю, что тут ошибка с отрисовкой блока LAYERS gameObject
+
         CurrentPage.SetActive(true);
         foreach (var page in AllPages)
         {

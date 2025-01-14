@@ -20,7 +20,10 @@ namespace Testing
         GameObject LinkContent;
         [SerializeField]
         GameObject LinkListQuestions;
+        [SerializeField]
+        GameObject LinkNavBar;
         Database Db { get; set; }
+        NavOverlayData NavData { get; set; }
         ListQuestions CurListQuestions { get; set; }
         TextMeshProUGUI Head { get; set; }
         TextMeshProUGUI Content { get; set; }
@@ -54,6 +57,7 @@ namespace Testing
             Db = LinkDatabase.GetComponent<Database>();
             Head = LinkHead.GetComponent<TextMeshProUGUI>();
             Content = LinkContent.GetComponent<TextMeshProUGUI>();
+            NavData = LinkNavBar.GetComponent<NavOverlayData>();
 
             ds = DialogueSystem.instance;
             architect = new TextArchitect(ds.dialogueContainer.dialogueText);
@@ -98,7 +102,7 @@ namespace Testing
                     tmp.text = CurListQuestions.DictAllQuestions[i];
                 }
                 
-                // Обновляем список вопросов
+                // Обновляем список вопросов при выборе одного из вопросов
                 if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey)
                 {
                     IsAddSelectedKey = true;
@@ -111,17 +115,20 @@ namespace Testing
                 architect.Stop();
             }
 
-            // + 1 клавиша для остановки архитектора текста
-            //if (Input.GetKeyDown(KeyCode.S))
-            //{
-            //    architect.Stop();
-            //}
+            // Баги:
+            // 1) Есть баг с завершением вывода ответа на вопрос и выводом вопроса персонажа, после ответа.
+            // ~ Приходится нажимать 2 раза Space, чтобы появился вопрос персонажа по умолчанию.
+            // ~ Также я заметил, что данный баг случается Только при нескольких ответах на вопрос. (Надо будет исправить)
+
+            // 2) Баг с сильным ускорением текста при повторном нажатии на Space, если ответов несколько. (-||-)
 
             // Условие для обновления Content при достижении конца или перехода к следующему ответу
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                // Если всего 1 ответ, то при нажатии на Space, мы оновляем поле Content
-                // Ошибка в том, что Btn Object выделен и вызывается повторно!!!
+                // Исправлена ошибка с Selected компонентом кнопки (Чтобы не забыть)
+                // ~ Из-за нажатия на вопрос, NavPageButtons срабатывал повторно, при нажатии на Space.
+
+                // Обновление текста в Content
                 if (Db.SelectQuestionKey == -1)
                 {
                     //Debug.Log($"Вызов setDefault при нажатии на Space : {Db.SelectQuestionKey} =? -1");
@@ -131,21 +138,33 @@ namespace Testing
                     IsAddSelectedKey = false;
 
                     // Включаем список вопросов
-                    //LinkListQuestions.SetActive(true);
+                    LinkListQuestions.SetActive(true);
+
+                    // Завершение этапа игры "Интервью"
+                    if (Db.CountEntrace == CurListQuestions.DictAllQuestions.Count)
+                    {
+                        // Переключаем флаг
+                        Db.IsEndInterview = true;
+
+                        // Выключаем тукую страницу (Этап интервью)
+                        NavData.CurrentPage.SetActive(false);
+
+                        // Сохраняем последнюю страницу
+                        Db.LastPage = NavData.CurrentPage;
+
+                        // Делаем переход к NavData объекту и от него к странице Preparation - Id : 1
+                        NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
+
+                        Db.LinkNavPageBtnGameObject.ChangeCamera();
+                    }
                 }
 
                 // Если ответов несколько, то при нажатии на Space, мы переходим дальше
                 if (Db.SelectQuestionKey != -1)
                 {
                     StartKeyAnswer++;
-
-                    // Выключаем список вопросов
-                    //LinkListQuestions.SetActive(false);
                 }
             }
-            
-            // Работает при запуске игры
-            //Debug.Log($"SelectQuestionKey! {Db.SelectQuestionKey}");
 
             // Настраиваем управление (Вывод ответов персонажем)
             if (Db.SelectQuestionKey != -1)
@@ -193,22 +212,21 @@ namespace Testing
                     else
                     {
                         architect.Build(answerStr);
-
                         LastContentText = answerStr;
 
                         // Заканчиваем печатать ответа
                         Db.SelectQuestionKey = -1;
-
-                        // Выключаем список вопросов
-                        //LinkListQuestions.SetActive(false);
                     }
                 }
             }
-            else if (Db.SelectQuestionKey == -1)
-            {
-                // Включаем список вопросов
-                LinkListQuestions.SetActive(true);
-            }
+
+            // Доп. код (Для себя):
+
+            // + 1 клавиша для остановки архитектора текста
+            //if (Input.GetKeyDown(KeyCode.S))
+            //{
+            //    architect.Stop();
+            //}
 
             // Дополнительное добавление строк в Content (Работает с условием на нажатие кнопки)
             //else if (Input.GetKeyDown(KeyCode.A))
@@ -225,8 +243,10 @@ namespace Testing
         {
             string str = Db.AllListQuestions[0].DefaultQuestionCharacter;
             architect.Build(str);
+
             // Обновляем последний введённый текст
             LastContentText = str;
+
             // Обнуляем счётчик
             StartKeyAnswer = 0;
         }
