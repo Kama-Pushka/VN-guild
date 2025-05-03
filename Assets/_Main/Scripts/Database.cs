@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using Mono.Data.Sqlite;
 using UnityEngine;
 
 public class Database : MonoBehaviour
 {
+    private string _databaseName = "URI=file:Assets/StreamingAssets/game-database.db";
+
     // Нужен string объект для вкладки "Подготовка"
     public string StartingText { get; private set; }
     public string PreparationText { get; private set; }
@@ -43,8 +46,8 @@ public class Database : MonoBehaviour
         CountEntrace = 0;
 
         // Функции заполнения данных
-        AddListQuestions();
         AddQuests();
+        AddListQuestions();
 
         // Заполняем окна подготовки
         StartingText = "Добро пожаловать, стажёр!;" +
@@ -66,8 +69,33 @@ public class Database : MonoBehaviour
 
     void AddQuests()
     {
+        var i = 0;
+        using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
+        { 
+            conn.Open();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM Quests";
+                using (var reader = cmd.ExecuteReader()) 
+                {
+                    while (reader.Read())
+                    {
+                        AllQuests.Add(new Quest(
+                            AllQuests.Count,
+                            (string)reader["name"],
+                            "Фермер", // TODO
+                            (string)reader["description"],
+                            i++ // TODO
+                            ));
+                    }
+                    reader.Close();
+                }
+            }
+            conn.Close();
+        }
+
         // Квест фермера
-        AllQuests.Add(new Quest(
+        /*AllQuests.Add(new Quest(
             AllQuests.Count,
             "Сбор урожая для фермера",
             "Фермер",
@@ -83,7 +111,7 @@ public class Database : MonoBehaviour
             "Охотник",
             "Данный квест ещё в разработке...",
             1
-            ));
+            ));*/
     }
     void AddListQuestions()
     {
@@ -91,8 +119,38 @@ public class Database : MonoBehaviour
         // Разделители:
         // ';' - разделение вопросов и ответов
         // '|' - разделяет все ответы на 1 вопрос, чтобы ответы выходили попорядку
-        
-        AllListQuestions.Add(new ListQuestions(
+
+        using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
+        {
+            conn.Open();
+            for (int i = 0; i < AllQuests.Count; i++)
+            {
+                var que = new List<string>();
+                var ans = new List<string>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT * FROM Questions WHERE questId={i}";
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            que.Add((string)reader["questionText"]);
+                            var ansText = (string)reader["answerText"];
+                            ans.Add(ansText.Replace("\n", "|")); // TODO Не робит?
+                        }
+                        reader.Close();
+                    }
+                }
+                AllListQuestions.Add(new ListQuestions(
+                    AllListQuestions.Count,
+                    string.Join(";", que.ToArray()),
+                    string.Join(";", ans.ToArray()))
+                    );
+            }
+            conn.Close();
+        }
+
+        /*AllListQuestions.Add(new ListQuestions(
             AllListQuestions.Count,
             "Какие культуры необходимо собрать?;" +
             "Есть ли какие-то особенности сбора культур?;" +
@@ -134,7 +192,7 @@ public class Database : MonoBehaviour
             "Ответ 2;" +
             "Ответ 3;" +
             "Ответ 4"
-            ));
+            ));*/
     }
     // Update is called once per frame
     //void Update()
