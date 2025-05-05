@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class LoadQuests : MonoBehaviour
 {
@@ -10,6 +11,13 @@ public class LoadQuests : MonoBehaviour
     GameObject LinkDatabase;
     [SerializeField]
     GameObject LinkQuests;
+    [SerializeField]
+    NavPageButtons LinkNavButtons;
+
+    [SerializeField]
+    GameObject QuestPrefab;
+    [SerializeField]
+    GameObject LinkQuestsList;
 
     [SerializeField]
     TextMeshProUGUI Head;
@@ -31,9 +39,21 @@ public class LoadQuests : MonoBehaviour
         for (int i = 0; i < Db.AllQuests.Count; i++)
         {
             Quest quest = Db.AllQuests[i];
-            GameObject gameObjQuest = LinkQuests.transform.GetChild(i).gameObject;
+            GameObject gameObjQuest = Instantiate(QuestPrefab); // LinkQuests.transform.GetChild(i).gameObject
+            gameObjQuest.name = $"Quest - {i}";
+            gameObjQuest.transform.SetParent(LinkQuestsList.transform);
+
             TextMeshProUGUI tmpText = gameObjQuest.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
             tmpText.text = quest.NameQuest;
+
+            var button = gameObjQuest.GetComponent<Button>();
+            button.onClick.AddListener(() => LinkNavButtons.OnQuestClick(tmpText));
+
+            gameObjQuest.transform.localPosition = new Vector3(
+                LinkQuestsList.transform.position.x,
+                LinkQuestsList.transform.position.y,
+                0);
+            gameObjQuest.transform.localScale = Vector3.one;
         }
     }
 
