@@ -5,6 +5,7 @@ using System.Net.WebSockets;
 using TMPro;
 using UnityEngine;
 
+// TODO выносить в основной проект
 // Чтобы это не касалось нашего проекта, мы отделяем через namespace, наш набор тестов
 // (создаём изоляцию)
 namespace Testing
@@ -95,13 +96,13 @@ namespace Testing
             {
                 GameObject btn = LinkListQuestions.transform.GetChild(i).gameObject;
                 TextMeshProUGUI tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-                
+
                 // Первичная загрузка 4 вопросов
                 if (Db.DictKeySelectedQustion.Count == 0)
                 {
                     tmp.text = CurListQuestions.DictAllQuestions[i];
                 }
-                
+
                 // Обновляем список вопросов при выборе одного из вопросов
                 if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey)
                 {

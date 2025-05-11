@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using Mono.Data.Sqlite;
 using UnityEngine;
 
@@ -28,6 +30,8 @@ public class Database : MonoBehaviour
     public Quest CurQuest { get; set; }
     // Ссылка на объект навигации меню
     public GameObject Navigation;
+
+    public Dictionary<int, string> CurQuestions; // TODO сделать полноценный объект вопроса чтобы перекидывать его через всю игру
 
     // Start is called before the first frame update
     // Заменил Start на Awake, чтобы сработали функции и присвоение эл-ов, для работы как с БД
@@ -85,6 +89,7 @@ public class Database : MonoBehaviour
                             (string)reader["name"],
                             "Фермер", // TODO
                             (string)reader["description"],
+                            reader.GetInt32("questionCount"),
                             i++ // TODO
                             ));
                     }
@@ -142,7 +147,7 @@ public class Database : MonoBehaviour
                     }
                 }
                 AllListQuestions.Add(new ListQuestions(
-                    AllListQuestions.Count,
+                    i,
                     string.Join(";", que.ToArray()),
                     string.Join(";", ans.ToArray()))
                     );

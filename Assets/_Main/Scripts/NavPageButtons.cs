@@ -19,6 +19,9 @@ public class NavPageButtons : MonoBehaviour
     [SerializeField]
     GameObject LinkOverlayCamera;
 
+    [SerializeField]
+    GameObject QuestionPrefabs; // TODO
+
     // Взятие компонента из ссылок
     Database Db { get; set; }
     NavOverlayData NavData { get; set; }
@@ -65,7 +68,7 @@ public class NavPageButtons : MonoBehaviour
         
         // Также делаем проверку по условию, для начала игры (Это относится к Preparation объекту)
         // Не работает обновление текста макета Preparation
-        if (Db.IsNewGame && !Db.IsInterview)
+        if (Db.IsNewGame && !Db.IsInterview) // TODO откуда он вопросы подтягивает?
         {
             Db.IsNewGame = true;
             Db.IsInterview = true;
@@ -76,6 +79,57 @@ public class NavPageButtons : MonoBehaviour
             navBar.GetComponent<NavOverlayData>().CurrentPage = requiredPage;
         }
     }
+
+    public void OnQuestSelected(GameObject requiredPage)
+    {
+        var availableQuestionsButtons = requiredPage.transform.GetChild(1).GetChild(0).GetChild(0).gameObject; // Choose Questions > Lists > AvailableQuestions
+        var selectedQuestionsButtons = requiredPage.transform.GetChild(1).GetChild(1).GetChild(0).gameObject; // Choose Questions > Lists > SelectedQuestions
+        var questionCount = requiredPage.transform.GetChild(0).GetChild(2).gameObject.GetComponent<TextMeshProUGUI>(); // Choose Questions > Backgrounds > QuestionCount (Text)
+
+        Db.CurQuestions = new Dictionary<int, string>(); // TODO ?
+
+        var qcNewText = questionCount.text.Split("/");
+        qcNewText[1] = Db.CurQuest.QuestionCount.ToString();
+        questionCount.text = string.Join("/", qcNewText);
+        var maxQuestions = Int32.Parse(qcNewText[1]);
+        var currQuestions = Int32.Parse(qcNewText[0]); // базово - 0
+
+        var questions = Db.AllListQuestions[Db.CurQuest.ID_ListQuestions];
+        foreach(var item in questions.DictAllQuestions) {
+            var q = Instantiate(QuestionPrefabs);
+            q.name = $"question - {item.Key}";
+            var test = q.GetComponent<Button>();
+            test.onClick.AddListener(() => 
+                {
+                    if (!Db.CurQuestions.ContainsKey(item.Key)) { // TODO менять позицию кнопки и ее надпись
+                        if (currQuestions >= maxQuestions) return;
+
+                        Db.CurQuestions[item.Key] = item.Value;
+                        q.transform.SetParent(selectedQuestionsButtons.transform);
+                        currQuestions++;
+                        qcNewText[0] = currQuestions.ToString(); // TODO переделать увеличение счетчика выбранных вопросов
+                        questionCount.text = string.Join("/", qcNewText);
+                    } else {
+                        Db.CurQuestions.Remove(item.Key);
+                        q.transform.SetParent(availableQuestionsButtons.transform);
+                        currQuestions--;
+                        qcNewText[0] = currQuestions.ToString(); // TODO переделать уменьшение счетчика выбранных вопросов
+                        questionCount.text = string.Join("/", qcNewText);
+                    }
+                });
+            var tmpText = q.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+            tmpText.text = item.Value;
+            q.transform.SetParent(availableQuestionsButtons.transform);
+
+            q.transform.localPosition = new Vector3(
+                q.transform.position.x,
+                q.transform.position.y,
+                0);
+            q.transform.localScale = Vector3.one;
+        }
+        OnButtonClick(requiredPage);
+    }
+
     /// <summary>
     /// Функция для перехода между камерами с помощью флага IsQuestCamOn из Database (Db). Также отвечает за сохранение 1-ых 4-ёх вопросов квеста
     /// </summary>
