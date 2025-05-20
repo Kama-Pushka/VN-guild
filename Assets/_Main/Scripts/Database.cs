@@ -13,12 +13,12 @@ public class Database : MonoBehaviour
     public string StartingText { get; private set; }
     public string PreparationText { get; private set; }
     public string EndInterviewText { get; private set; }
-    public List<ListQuestions> AllListQuestions { get; private set; }
+    //public List<Question> AllListQuestions { get; private set; } // TODO выпилить
     public List<Quest> AllQuests { get; private set; }
     public GameObject LastPage { get; set; }
-    public int SelectQuestionKey { get; set; }
+    public int SelectQuestionKey { get; set; } // TODO ??
     public Dictionary<int, int> DictKeySelectedQustion { get; set; }
-    public int CountQuestionsReplacement { get; set; }
+    public int CountQuestionsReplacement { get; set; } // TODO выпилить
     public NavPageButtons LinkNavPageBtnGameObject { get; set; }
 
     // Счётчик для завершения этапа интервью (временный костыль)
@@ -31,14 +31,15 @@ public class Database : MonoBehaviour
     // Ссылка на объект навигации меню
     public GameObject Navigation;
 
-    public Dictionary<int, string> CurQuestions; // TODO сделать полноценный объект вопроса чтобы перекидывать его через всю игру
+    public Dictionary<int, Question> AvailableQuestions; // TODO сделать полноценный объект вопроса чтобы перекидывать его через всю игру
+    public Question CurQuestion;
 
     // Start is called before the first frame update
     // Заменил Start на Awake, чтобы сработали функции и присвоение эл-ов, для работы как с БД
     void Awake()
     {
         // Объявление
-        AllListQuestions = new List<ListQuestions>();
+        //AllListQuestions = new List<Question>();
         AllQuests = new List<Quest>();
         IsQuestCamOn = true;
         IsNewGame = false;
@@ -124,35 +125,55 @@ public class Database : MonoBehaviour
         // Разделители:
         // ';' - разделение вопросов и ответов
         // '|' - разделяет все ответы на 1 вопрос, чтобы ответы выходили попорядку
-
-        using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
+        try
         {
-            conn.Open();
-            for (int i = 0; i < AllQuests.Count; i++)
+            using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
             {
-                var que = new List<string>();
-                var ans = new List<string>();
-                using (var cmd = conn.CreateCommand())
+                conn.Open();
+                foreach (var quest in AllQuests)
                 {
-                    cmd.CommandText = $"SELECT * FROM Questions WHERE questId={i}";
-                    using (var reader = cmd.ExecuteReader())
+                    var queDct = new Dictionary<int, Question>();
+                    var queChild = new List<Question>();
+                    var que = "";
+                    var ans = "";
+                    var id = 0;
+                    var parentQueId = 0;
+
+                    using (var cmd = conn.CreateCommand())
                     {
-                        while (reader.Read())
+                        cmd.CommandText = $"SELECT * FROM Questions WHERE questId={quest.ID_quest}";
+                        using (var reader = cmd.ExecuteReader())
                         {
-                            que.Add((string)reader["questionText"]);
-                            var ansText = (string)reader["answerText"];
-                            ans.Add(ansText.Replace("\n", "|")); // TODO Не робит?
+                            while (reader.Read())
+                            {
+                                id = reader.GetInt32("id");
+                                que = (string)reader["questionText"];
+                                ans = (string)reader["answerText"];
+                                ans = ans.Replace("\n", "|");
+                                parentQueId = reader.GetInt32("questionId");
+
+                                var q = new Question(id, que, ans, parentQueId);
+                                queDct[id] = q;
+                                if (parentQueId == -1)
+                                    quest.Questions.Add(q);
+                                else
+                                    queChild.Add(q);
+                            }
+                            reader.Close();
                         }
-                        reader.Close();
+                    }
+
+                    foreach (var q in queChild)
+                    {
+                        queDct[q.ParentQuestion].ChildQuestions.Add(q);
                     }
                 }
-                AllListQuestions.Add(new ListQuestions(
-                    i,
-                    string.Join(";", que.ToArray()),
-                    string.Join(";", ans.ToArray()))
-                    );
+                conn.Close();
             }
-            conn.Close();
+        }
+        catch 
+        {
+            throw new Exception("НЕКОРРЕКТНЫЕ ДАННЫЕ В БД");
         }
 
         /*AllListQuestions.Add(new ListQuestions(

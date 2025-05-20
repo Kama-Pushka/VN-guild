@@ -6,6 +6,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using static Unity.Burst.Intrinsics.X86.Avx;
 
 public class NavPageButtons : MonoBehaviour
 {
@@ -21,6 +22,8 @@ public class NavPageButtons : MonoBehaviour
 
     [SerializeField]
     GameObject QuestionPrefabs; // TODO
+    [SerializeField]
+    GameObject QuestionInInterviewPrefab;
 
     // Взятие компонента из ссылок
     Database Db { get; set; }
@@ -86,7 +89,7 @@ public class NavPageButtons : MonoBehaviour
         var selectedQuestionsButtons = requiredPage.transform.GetChild(1).GetChild(1).GetChild(0).gameObject; // Choose Questions > Lists > SelectedQuestions
         var questionCount = requiredPage.transform.GetChild(0).GetChild(2).gameObject.GetComponent<TextMeshProUGUI>(); // Choose Questions > Backgrounds > QuestionCount (Text)
 
-        Db.CurQuestions = new Dictionary<int, string>(); // TODO ?
+        Db.AvailableQuestions = new Dictionary<int, Question>(); // TODO ?
 
         var qcNewText = questionCount.text.Split("/");
         qcNewText[1] = Db.CurQuest.QuestionCount.ToString();
@@ -94,23 +97,23 @@ public class NavPageButtons : MonoBehaviour
         var maxQuestions = Int32.Parse(qcNewText[1]);
         var currQuestions = Int32.Parse(qcNewText[0]); // базово - 0
 
-        var questions = Db.AllListQuestions[Db.CurQuest.ID_ListQuestions];
-        foreach(var item in questions.DictAllQuestions) {
+        var questions = Db.CurQuest.Questions;
+        foreach(var item in questions) {
             var q = Instantiate(QuestionPrefabs);
-            q.name = $"question - {item.Key}";
-            var test = q.GetComponent<Button>();
-            test.onClick.AddListener(() => 
-                {
-                    if (!Db.CurQuestions.ContainsKey(item.Key)) { // TODO менять позицию кнопки и ее надпись
+            q.name = $"question - {item.ID}";
+            var button = q.GetComponent<Button>();
+            button.onClick.AddListener(() =>  // TODO неоптимально, но лан
+            {
+                    if (!Db.AvailableQuestions.ContainsKey(item.ID)) { // TODO менять позицию кнопки и ее надпись
                         if (currQuestions >= maxQuestions) return;
 
-                        Db.CurQuestions[item.Key] = item.Value;
+                        Db.AvailableQuestions[item.ID] = item;
                         q.transform.SetParent(selectedQuestionsButtons.transform);
                         currQuestions++;
                         qcNewText[0] = currQuestions.ToString(); // TODO переделать увеличение счетчика выбранных вопросов
                         questionCount.text = string.Join("/", qcNewText);
                     } else {
-                        Db.CurQuestions.Remove(item.Key);
+                        Db.AvailableQuestions.Remove(item.ID);
                         q.transform.SetParent(availableQuestionsButtons.transform);
                         currQuestions--;
                         qcNewText[0] = currQuestions.ToString(); // TODO переделать уменьшение счетчика выбранных вопросов
@@ -118,7 +121,7 @@ public class NavPageButtons : MonoBehaviour
                     }
                 });
             var tmpText = q.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-            tmpText.text = item.Value;
+            tmpText.text = item.TextQuestion;
             q.transform.SetParent(availableQuestionsButtons.transform);
 
             q.transform.localPosition = new Vector3(
@@ -128,6 +131,44 @@ public class NavPageButtons : MonoBehaviour
             q.transform.localScale = Vector3.one;
         }
         OnButtonClick(requiredPage);
+    }
+
+    // TODO а не будет такого, что выйдя из квеста мы вернемся на выбор вопроса? (нет, кнопки назад при интерью быть не должно)
+    // а точнее очищать оставшиеся объекты вопросов, ибо они все еще там (в логике по идее это обновляется)
+    public void OnQuestionSelected(GameObject requiredPage) // Выбрали список вопросов и переходим к интервью
+    {
+        var questionList = requiredPage.transform.GetChild(5).GetChild(1).GetChild(0).gameObject; // LAYERS > 5 - Foreground > Questions > List
+        foreach (var item in Db.AvailableQuestions)
+        {
+            CreateQuestion(questionList, item.Value);
+        }
+
+        OnChangeCameraClick(requiredPage);
+
+        //// Обновляем список вопросов при выборе одного из вопросов
+        //if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey)
+        //{
+        //    IsAddSelectedKey = true;
+        //}
+    }
+
+    private void CreateQuestion(GameObject questionList, Question question) 
+    {
+        var btn = Instantiate(QuestionInInterviewPrefab);
+        btn.name = $"Qustion {question.ID}";
+        var button = btn.GetComponent<Button>();
+        button.onClick.AddListener(() => OnQuestionClick(btn)); // TODO неоптимально, но лан
+
+        var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+        tmp.text = question.TextQuestion;
+
+        btn.transform.SetParent(questionList.transform);
+
+        btn.transform.localPosition = new Vector3(
+            btn.transform.position.x,
+            btn.transform.position.y,
+            0);
+        btn.transform.localScale = Vector3.one;
     }
 
     /// <summary>
@@ -152,7 +193,7 @@ public class NavPageButtons : MonoBehaviour
         //Debug.Log($"Nav.CurPage = {NavData.CurrentPage}");
 
         // Обнуление при переходе
-        Db.DictKeySelectedQustion.Clear();
+        Db.DictKeySelectedQustion.Clear(); // TODO ???
         Db.CountQuestionsReplacement = 0;
         Db.CountEntrace = 0;
 
@@ -164,6 +205,25 @@ public class NavPageButtons : MonoBehaviour
         ChangeCamera();
         
     }
+
+    // TODO ??
+    public void OnEndInterview() 
+    {
+        // Переключаем флаг
+        Db.IsEndInterview = true;
+
+        // Выключаем тукую страницу (Этап интервью)
+        NavData.CurrentPage.SetActive(false);
+
+        // Сохраняем последнюю страницу
+        Db.LastPage = NavData.CurrentPage;
+
+        // Делаем переход к NavData объекту и от него к странице Preparation - Id : 1
+        NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
+
+        ChangeCamera(); // Db.LinkNavPageBtnGameObject.ChangeCamera(); TODO is null, why??
+    }
+
     /// <summary>
     /// Функция завершения игры
     /// </summary>
@@ -197,60 +257,72 @@ public class NavPageButtons : MonoBehaviour
         // 3) Добавляем этот ключ и выводим в список вопросов, как новый оставшийся вопрос;
 
         // Получаем нужный список вопросов
-        int keyListQuestions = Db.CurQuest.ID_ListQuestions;
-        var curListQuestions = Db.AllListQuestions[keyListQuestions];
+        //int keyListQuestions = Db.CurQuest.ID_ListQuestions;
+        //var curListQuestions = Db.AllListQuestions[keyListQuestions];
 
         // Получаем нужный нам Count-ры и вычисляем разницу, для условия
-        int countSelectDict = Db.DictKeySelectedQustion.Count();
-        int countQuestionsDict = curListQuestions.DictAllQuestions.Count();
-        int mathDifferenceCountDicts = (countQuestionsDict - 4);
+        //int countSelectDict = Db.DictKeySelectedQustion.Count();
+        //int countQuestionsDict = Db.CurQuestions.Count; // curListQuestions.DictAllQuestions.Count();
+        //int mathDifferenceCountDicts = 0;// (countQuestionsDict - 4);
 
         // Счётчик нажатий на вопрос (Временный костыль)
         Db.CountEntrace++;
 
-        // Если счётчик замены не достиг разницы mathDifferenceCountDicts
-        // то мы делаем замену вопроса в списке вопросов
-        // иначе вопрос скрывается
-        if (Db.CountQuestionsReplacement < mathDifferenceCountDicts)
+        var questionList = btn.transform.parent.gameObject; // LAYERS > 5 - Foreground > Questions > List
+        var selectQuestion = Db.AvailableQuestions[Db.SelectQuestionKey]; // стартовые вопросы уже находятся там, последующие добавляются
+        foreach (var que in selectQuestion.ChildQuestions) 
         {
-            bool IsFoundNewQuestions = false;
-
-            // Делаем замену названия кнопки и вопроса
-            // В начале перебираем все вопросы, из основного словаря вопросов
-            foreach (var item in curListQuestions.DictAllQuestions)
-            {
-                // Проверка на наличие ключа, в словаре выбранных вопросов
-                IsFoundNewQuestions = Db.DictKeySelectedQustion.Values.Contains(item.Key);
-
-                // Тесты
-                //Debug.Log($"IsFoundNewQuestions = {IsFoundNewQuestions} and item.key = {item.Key}");
-                
-                if (!IsFoundNewQuestions)
-                {
-                    // Смена имени + ключ вопроса
-                    btn.name = "Question " + item.Key;
-
-                    // Получаем tmp obj и делаем смену вопроса
-                    var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-                    tmp.text = item.Value;
-
-                    // Счётчик для работы условия + сохранение нового вопроса
-                    Db.CountQuestionsReplacement++;
-                    Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count, item.Key);
-                    break;
-                }
-            }
+            Db.AvailableQuestions[que.ID] = que;
+            CreateQuestion(questionList, que);
         }
-        else
-        {
-            btn.SetActive(false);
-        }
+
+        Db.CurQuestion = selectQuestion;
+        btn.SetActive(false);
 
         // Сохраняем ссылку на объект для перехода к следующему этапу игры
-        if (Db.CountEntrace == countQuestionsDict)
+        if (Db.CountEntrace == Db.AvailableQuestions.Count)
         {
             Db.LinkNavPageBtnGameObject = this;
         }
+
+        // TODO Legacy
+        // Если счётчик замены не достиг разницы mathDifferenceCountDicts
+        // то мы делаем замену вопроса в списке вопросов
+        // иначе вопрос скрывается
+        //if (Db.CountQuestionsReplacement < mathDifferenceCountDicts)
+        //{
+        //    bool IsFoundNewQuestions = false;
+
+        //    // Делаем замену названия кнопки и вопроса
+        //    // В начале перебираем все вопросы, из основного словаря вопросов
+        //    foreach (var item in curListQuestions.DictAllQuestions)
+        //    {
+        //        // Проверка на наличие ключа, в словаре выбранных вопросов
+        //        IsFoundNewQuestions = Db.DictKeySelectedQustion.Values.Contains(item.Key);
+
+        //        // Тесты
+        //        //Debug.Log($"IsFoundNewQuestions = {IsFoundNewQuestions} and item.key = {item.Key}");
+
+        //        if (!IsFoundNewQuestions)
+        //        {
+        //            // Смена имени + ключ вопроса
+        //            btn.name = "Question " + item.Key;
+
+        //            // Получаем tmp obj и делаем смену вопроса
+        //            var tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+        //            tmp.text = item.Value;
+
+        //            // Счётчик для работы условия + сохранение нового вопроса
+        //            Db.CountQuestionsReplacement++;
+        //            Db.DictKeySelectedQustion.Add(Db.DictKeySelectedQustion.Count, item.Key);
+        //            break;
+        //        }
+        //    }
+        //}
+        //else
+        //{
+        //    btn.SetActive(false);
+        //}
     }
     /// <summary>
     /// Функция для смены камер и Canvas объектов

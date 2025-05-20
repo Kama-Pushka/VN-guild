@@ -18,6 +18,9 @@ public class Quest
     public string CharacterName { get; private set; } // TODO у квеста может быть много заказчиков
     public string HighlightedWords { get; private set; } // TODO возможно не надо
     public int ID_ListQuestions { get; private set; } // TODO переделать?
+
+    public List<Question> Questions { get; private set; }
+
     public Quest(int Id, string nameQuest, string characterName, string description, int questionCount, int id_ListQuestions)
     {
         ID_quest = Id;
@@ -29,6 +32,8 @@ public class Quest
         complexityQuest = Complexity.Normal;
 
         QuestionCount = questionCount;
+
+        Questions = new List<Question>();
 
         // Описание квеста и отсутствие подсказок
         Description = description;

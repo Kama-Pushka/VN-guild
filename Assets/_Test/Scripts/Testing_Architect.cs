@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using TMPro;
 using UnityEngine;
+using static Unity.Burst.Intrinsics.X86.Avx;
 
 // TODO выносить в основной проект
 // Чтобы это не касалось нашего проекта, мы отделяем через namespace, наш набор тестов
@@ -23,9 +24,10 @@ namespace Testing
         GameObject LinkListQuestions;
         [SerializeField]
         GameObject LinkNavBar;
+
         Database Db { get; set; }
         NavOverlayData NavData { get; set; }
-        ListQuestions CurListQuestions { get; set; }
+        Question CurQuestion { get; set; }
         TextMeshProUGUI Head { get; set; }
         TextMeshProUGUI Content { get; set; }
         // Получаем доступ к диалоговой системе, через DialogueSystem
@@ -81,7 +83,7 @@ namespace Testing
 
         // Update is called once per frame
         void Update()
-        {
+        { // TODO а это должно ДО ЗАГРУЗКИ КВЕСТА грузиться? а оно это делает
             // Обновление первичного текста на странице диалога
             Head.text = Db.CurQuest.CharacterName;
 
@@ -89,26 +91,21 @@ namespace Testing
             KeyListQuestions = Db.CurQuest.ID_ListQuestions;
 
             // Получаем список вопросов с помощью KeyListQuestions
-            CurListQuestions = Db.AllListQuestions[KeyListQuestions];
+            CurQuestion = Db.CurQuestion;
 
             // Заполняем раздел вопросов (макс 4)
-            for (int i = 0; i < 4; i++)
-            {
-                GameObject btn = LinkListQuestions.transform.GetChild(i).gameObject;
-                TextMeshProUGUI tmp = btn.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+            
+            // Первичная загрузка 4 вопросов
+            //if (Db.DictKeySelectedQustion.Count == 0)
+            //{
+            //    tmp.text = CurListQuestions.DictAllQuestions[i];
+            //}
 
-                // Первичная загрузка 4 вопросов
-                if (Db.DictKeySelectedQustion.Count == 0)
-                {
-                    tmp.text = CurListQuestions.DictAllQuestions[i];
-                }
-
-                // Обновляем список вопросов при выборе одного из вопросов
-                if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey)
-                {
-                    IsAddSelectedKey = true;
-                }
-            }
+            // Обновляем список вопросов при выборе одного из вопросов
+            //if (Db.SelectQuestionKey != -1 && !IsAddSelectedKey) // TODO ??
+            //{
+            //    IsAddSelectedKey = true;
+            //}
 
             if (bm != architect.buildMethod)
             {
@@ -141,8 +138,9 @@ namespace Testing
                     // Включаем список вопросов
                     LinkListQuestions.SetActive(true);
 
+                    // TODO убрать?
                     // Завершение этапа игры "Интервью"
-                    if (Db.CountEntrace == CurListQuestions.DictAllQuestions.Count)
+                    if (Db.CountEntrace == Db.AvailableQuestions.Count) // CurListQuestions.DictAllQuestions.Count    TODO
                     {
                         // Переключаем флаг
                         Db.IsEndInterview = true;
@@ -156,7 +154,7 @@ namespace Testing
                         // Делаем переход к NavData объекту и от него к странице Preparation - Id : 1
                         NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
 
-                        Db.LinkNavPageBtnGameObject.ChangeCamera();
+                        Db.LinkNavPageBtnGameObject.ChangeCamera(); // TODO null(но не null если задать 4 вопроса) (преверить как было до) (ну и почему при задании всех вопросов сцена слетает)
                     }
                 }
 
@@ -188,11 +186,11 @@ namespace Testing
                 else
                 {
                     // Тут скрывается блок вопросов и выводится 1-ый ответ на вопрос
-                    string answerStr = CurListQuestions.DictAllAnswers[Db.SelectQuestionKey];
+                    string answerStr = CurQuestion.TextAnswer;
                     if (answerStr.Contains("|"))
                     {
                         // Список ответов
-                        string[] outAllAnswer = CurListQuestions.getFullAnswersFromStrDict(answerStr);
+                        string[] outAllAnswer = CurQuestion.getFullAnswersFromStrDict(answerStr);
 
                         // Ограничение вывода ответов, чтобы не уйти за список
                         if (StartKeyAnswer < outAllAnswer.Count())
@@ -242,7 +240,7 @@ namespace Testing
         /// </summary>
         void setDefaultContent()
         {
-            string str = Db.AllListQuestions[0].DefaultQuestionCharacter;
+            string str = CurQuestion.DefaultQuestionCharacter;
             architect.Build(str);
 
             // Обновляем последний введённый текст
