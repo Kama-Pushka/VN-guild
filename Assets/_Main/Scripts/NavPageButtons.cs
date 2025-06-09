@@ -25,6 +25,9 @@ public class NavPageButtons : MonoBehaviour
     [SerializeField]
     GameObject QuestionInInterviewPrefab;
 
+    [SerializeField]
+    GameObject Journal; // TODO а надо ли на самом деле здесь иметь ссылку на объект журнала??
+
     // Взятие компонента из ссылок
     Database Db { get; set; }
     NavOverlayData NavData { get; set; }
@@ -64,23 +67,27 @@ public class NavPageButtons : MonoBehaviour
 
         // Подключаем БД, для реализации условия ниже
         // (Использовалась до метода Start(), актуальность не известна)
-        Db = navBar.GetComponent<NavOverlayData>().Database.GetComponent<Database>();
+        //Db = navBar.GetComponent<NavOverlayData>().Database.GetComponent<Database>();
 
         // Изменяем curPage в navBar.getComponent()
         // Меняем страницу, в NavOverlayData.Update(), с помощью CurrentPage
-        
+
         // Также делаем проверку по условию, для начала игры (Это относится к Preparation объекту)
         // Не работает обновление текста макета Preparation
-        if (Db.IsNewGame && !Db.IsInterview) // TODO откуда он вопросы подтягивает?
+        if (Db.IsNewGame && !Db.IsInterview)
         {
-            Db.IsNewGame = true;
+            //Db.IsNewGame = true;
             Db.IsInterview = true;
-            navBar.GetComponent<NavOverlayData>().CurrentPage.GetComponent<LoadPreparation>().Updater();
         }
         else
         {
             navBar.GetComponent<NavOverlayData>().CurrentPage = requiredPage;
         }
+        if (!Db.IsNewGame)
+        {
+            navBar.GetComponent<NavOverlayData>().CurrentPage.GetComponent<LoadPreparation>().StartNew(); // TODO делать это не здесь
+        }
+        navBar.GetComponent<NavOverlayData>().CurrentPage.GetComponent<LoadPreparation>().Updater(); // TODO Только если запускаем Preparation!!!
     }
 
     public void OnQuestSelected(GameObject requiredPage)
@@ -130,7 +137,21 @@ public class NavPageButtons : MonoBehaviour
                 0);
             q.transform.localScale = Vector3.one;
         }
+
+        JournalInfoUpdate(Db.CurQuest.NameQuest, Db.CurQuest.Description, Db.CurQuest.CharacterName);
+
         OnButtonClick(requiredPage);
+    }
+
+    public void JournalInfoUpdate(string questName, string questDescription, string customerName) 
+    {
+        var questTitle = Journal.transform.GetChild(1).GetChild(4).GetChild(1).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Title
+        var questDesc = Journal.transform.GetChild(1).GetChild(4).GetChild(2).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Desc
+        var customer = Journal.transform.GetChild(1).GetChild(4).GetChild(5).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Customer
+
+        questTitle.text = questName;
+        questDesc.text = questDescription;
+        customer.text = customerName;
     }
 
     // TODO а не будет такого, что выйдя из квеста мы вернемся на выбор вопроса? (нет, кнопки назад при интерью быть не должно)
@@ -203,7 +224,7 @@ public class NavPageButtons : MonoBehaviour
 
         // Вызываем функцию смены камеры и перехода от текущего Canvas объекта, к следующему Canvas объекту
         ChangeCamera();
-        
+
     }
 
     // TODO ??
@@ -222,6 +243,26 @@ public class NavPageButtons : MonoBehaviour
         NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
 
         ChangeCamera(); // Db.LinkNavPageBtnGameObject.ChangeCamera(); TODO is null, why??
+        NavData.GetComponent<NavOverlayData>().CurrentPage.GetComponent<LoadPreparation>().Updater(); // TODO Только если запускаем Preparation!!!
+    }
+
+    // TODO костыль?
+    public void OnJournalActivate(GameObject journal) 
+    {
+        NavData.CurrentPage.SetActive(false);
+
+        Db.LastPage = NavData.CurrentPage;
+        NavData.CurrentPage = journal;
+
+        journal.SetActive(true); // TODO сделать адекватное переключение между камерами
+
+        LinkQuestCamera.SetActive(true);
+        LinkOverlayCamera.SetActive(false);
+        Db.IsQuestCamOn = false;
+
+        // Отключение Over канвы
+        CanvasOver.SetActive(false); // TODO сделать свою переключалку для журнала (временный костыль)
+        CanvasQuest.SetActive(true);
     }
 
     /// <summary>
@@ -338,7 +379,7 @@ public class NavPageButtons : MonoBehaviour
             Db.IsQuestCamOn = false;
 
             // Отключение Over канвы
-            CanvasOver.SetActive(false);
+            CanvasOver.SetActive(false); // TODO сделать свою переключалку для журнала (временный костыль)
             CanvasQuest.SetActive(true);
 
             //Debug.Log($"canvOver = {canvOver.activeInHierarchy}");

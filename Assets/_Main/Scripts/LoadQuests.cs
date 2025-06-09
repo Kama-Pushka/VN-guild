@@ -57,7 +57,7 @@ public class LoadQuests : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
+    // Update is called once per frame  TODO зачем каждый кадр обновлять то, что должно обновляться только при выборе квеста??
     void Update()
     {
         Completion();

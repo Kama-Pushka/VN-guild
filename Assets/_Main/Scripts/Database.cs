@@ -24,9 +24,9 @@ public class Database : MonoBehaviour
     // Счётчик для завершения этапа интервью (временный костыль)
     public int CountEntrace {  get; set; }
     public bool IsQuestCamOn { get; set; }
-    public bool IsNewGame { get; set; }
-    public bool IsInterview { get; set; }
-    public bool IsEndInterview { get; set; }
+    public bool IsNewGame { get; set; } // TODO ??
+    public bool IsInterview { get; set; } // TODO ??
+    public bool IsEndInterview { get; set; } // TODO ??
     public Quest CurQuest { get; set; }
     // Ссылка на объект навигации меню
     public GameObject Navigation;
