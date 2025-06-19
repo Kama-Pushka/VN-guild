@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.Events;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -26,7 +26,7 @@ public class LoadPreparation : MonoBehaviour
     GameObject Nav; // TODO убрать отсюда
     //
     string[] result { get; set; }
-    //
+
     TextMeshProUGUI head {  get; set; }
     TextMeshProUGUI content { get; set; }
     TextMeshProUGUI btn { get; set; }
@@ -83,9 +83,10 @@ public class LoadPreparation : MonoBehaviour
 
             var nav = Nav.GetComponent<NavPageButtons>(); // TODO переделать эту функцию изменения листенера кнопки
             var b = ButtonsContinue.GetComponent<Button>();
-            UnityEventTools.RemovePersistentListener(b.onClick, 0);
-            b.onClick.RemoveAllListeners();
-            b.onClick.AddListener(() => nav.OnJournalActivate(Journal));
+            ButtonsContinue.transform.parent.GetChild(2).gameObject.SetActive(false); // TODO а что с той кнопкой?
+            ButtonsContinue.SetActive(true);
+            //b.onClick.RemoveAllListeners();
+            b.onClick.AddListener(() => nav.OnJournalActivate(Journal)); // TODO в инспектор
         }
     }
 }

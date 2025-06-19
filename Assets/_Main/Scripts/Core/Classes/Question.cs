@@ -31,13 +31,14 @@ public class Question // TODO переделать в объект Вопрос
     public string Notes { get; set; }
     public int ParentQuestion { get; private set; }
     public List<Question> ChildQuestions { get; private set; }
+    public List<JournalPoint> JournalPoints { get; private set; }
 
     public string DefaultQuestionCharacter { get; private set; } // TODO ??
     //public Dictionary<int, string> DictAllQuestions { get; private set; } // TODO ??
     //public Dictionary<int, string> DictAllAnswers { get; private set; } // TODO ??
     //public Dictionary<int, string> DictNotes { get; private set; } // TODO ??
 
-    public Question(int id, string question, string answer, int parentQuestion)
+    public Question(int id, string question, string answer, int parentQuestion, List<JournalPoint> journalPoints)
     {
         // Получаем данные и объявляем словари
         ID = id;
@@ -55,6 +56,7 @@ public class Question // TODO переделать в объект Вопрос
 
         ChildQuestions = new List<Question>();
         ParentQuestion = parentQuestion;
+        JournalPoints = journalPoints;
     }
 
     //public Dictionary<int, string> getDictFromStr(string dict)

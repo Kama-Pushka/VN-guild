@@ -44,7 +44,7 @@ public class LoadQuests : MonoBehaviour
             gameObjQuest.transform.SetParent(LinkQuestsList.transform);
 
             TextMeshProUGUI tmpText = gameObjQuest.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-            tmpText.text = quest.NameQuest;
+            //tmpText.text = quest.NameQuest;
 
             var button = gameObjQuest.GetComponent<Button>();
             button.onClick.AddListener(() => LinkNavButtons.OnQuestClick(tmpText));

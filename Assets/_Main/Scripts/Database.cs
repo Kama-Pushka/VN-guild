@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Data;
 using Mono.Data.Sqlite;
 using UnityEngine;
+using UnityEngine.Internal;
 
 public class Database : MonoBehaviour
 {
-    private string _databaseName = "URI=file:Assets/StreamingAssets/game-database.db";
+    private string _databaseName = $"URI=file:VN-guild_Data/StreamingAssets/game-database.db"; // 
 
     // Нужен string объект для вкладки "Подготовка"
     public string StartingText { get; private set; }
@@ -31,13 +32,21 @@ public class Database : MonoBehaviour
     // Ссылка на объект навигации меню
     public GameObject Navigation;
 
-    public Dictionary<int, Question> AvailableQuestions; // TODO сделать полноценный объект вопроса чтобы перекидывать его через всю игру
+    public Dictionary<int, Question> AvailableQuestions; // TODO сделать полноценный объект вопроса чтобы перекидывать его через всю игру   TODO переделать так чтобы отображал только текущие доступные?
+    public List<Question> AskedQuestions { get; private set; }
     public Question CurQuestion;
+    public double BriefPointCount { get; set; }
+    public List<string>[] FinalBrief { get; private set; }
+
+    public GameObject MainBackgroundOverlay;
+    public GameObject MainBackground;
 
     // Start is called before the first frame update
     // Заменил Start на Awake, чтобы сработали функции и присвоение эл-ов, для работы как с БД
     void Awake()
     {
+        Screen.SetResolution(1156, 574, false);
+
         // Объявление
         //AllListQuestions = new List<Question>();
         AllQuests = new List<Quest>();
@@ -49,6 +58,8 @@ public class Database : MonoBehaviour
 
         // Временный костыль
         CountEntrace = 0;
+
+        AskedQuestions = new List<Question>();
 
         // Функции заполнения данных
         AddQuests();
@@ -70,6 +81,10 @@ public class Database : MonoBehaviour
 
         // Делаем 1-ый квест (по умолчанию) выбранным
         CurQuest = AllQuests[0];
+
+        FinalBrief = new List<string>[6] {
+            new List<string>(), new List<string>(), new List<string>(), new List<string>(), new List<string>(), new List<string>()
+        };
     }
 
     void AddQuests()
@@ -85,14 +100,15 @@ public class Database : MonoBehaviour
                 {
                     while (reader.Read())
                     {
-                        AllQuests.Add(new Quest(
-                            AllQuests.Count,
+                        var q = new Quest(
+                            reader.GetInt32("id"),
                             (string)reader["name"],
                             "Фермер", // TODO
                             (string)reader["description"],
-                            reader.GetInt32("questionCount"),
+                            reader.GetInt32("availableQuestions"),
                             i++ // TODO
-                            ));
+                            );
+                        AllQuests.Add(q);
                     }
                     reader.Close();
                 }
@@ -119,6 +135,64 @@ public class Database : MonoBehaviour
             1
             ));*/
     }
+
+    Dictionary<int, List<JournalPoint>> CollectJournalPoints()
+    {
+        try
+        {
+            var questionBriefPoints = new Dictionary<int, List<BriefPointItem>>();
+            var questionJournalPoints = new Dictionary<int, List<JournalPoint>>();
+            using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
+            {
+                conn.Open();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT * FROM QuestionBriefPoints";
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetInt32("journalPointId");
+                            var briefId = reader.GetInt32("briefPointId");
+                            var text = (string)reader["text"];
+
+                            if (questionBriefPoints.ContainsKey(id))
+                                questionBriefPoints[id].Add(new BriefPointItem(briefId, text));
+                            else
+                                questionBriefPoints[id] = new List<BriefPointItem>() { new BriefPointItem(briefId, text) };
+                        }
+                        reader.Close();
+                    }
+
+                    cmd.CommandText = $"SELECT * FROM QuestionJournalPoints";
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetInt32("id");
+                            var questionId = reader.GetInt32("questionId");
+                            var text = (string)reader["text"];
+
+                            if (questionJournalPoints.ContainsKey(questionId))
+                                questionJournalPoints[questionId].Add(new JournalPoint(id, text,
+                                    questionBriefPoints.ContainsKey(id) ? questionBriefPoints[id] : null));
+                            else
+                                questionJournalPoints[questionId] = new List<JournalPoint>() { new JournalPoint(id, text,
+                                    questionBriefPoints.ContainsKey(id) ? questionBriefPoints[id] : null) };
+                        }
+                        reader.Close();
+                    }
+                }
+                conn.Close();
+            }
+            return questionJournalPoints;
+        }
+        catch
+        {
+            throw new Exception("НЕКОРРЕКТНЫЕ ДАННЫЕ В БД");
+        }
+    }
+
     void AddListQuestions()
     {
         // Списки вопросов и ответов
@@ -127,6 +201,7 @@ public class Database : MonoBehaviour
         // '|' - разделяет все ответы на 1 вопрос, чтобы ответы выходили попорядку
         try
         {
+            var questionJournalPoints = CollectJournalPoints();
             using (var conn = new SqliteConnection(_databaseName)) // TODO под ORM
             {
                 conn.Open();
@@ -152,7 +227,7 @@ public class Database : MonoBehaviour
                                 ans = ans.Replace("\n", "|");
                                 parentQueId = reader.GetInt32("questionId");
 
-                                var q = new Question(id, que, ans, parentQueId);
+                                var q = new Question(id, que, ans, parentQueId, questionJournalPoints[id]);
                                 queDct[id] = q;
                                 if (parentQueId == -1)
                                     quest.Questions.Add(q);
@@ -161,6 +236,9 @@ public class Database : MonoBehaviour
                             }
                             reader.Close();
                         }
+
+                        cmd.CommandText = $"SELECT COUNT(*) FROM QuestionBriefPoints qb JOIN QuestionJournalPoints qj ON qb.journalPointId = qj.id JOIN Questions q ON qj.questionId = q.id WHERE isRepeated=0 AND q.questId={quest.ID_quest}";
+                        quest.CorrectBriefPointCount = Convert.ToInt32(cmd.ExecuteScalar());
                     }
 
                     foreach (var q in queChild)

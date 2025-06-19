@@ -19,6 +19,8 @@ public class Quest
     public string HighlightedWords { get; private set; } // TODO возможно не надо
     public int ID_ListQuestions { get; private set; } // TODO переделать?
 
+    public int CorrectBriefPointCount { get; set; }
+
     public List<Question> Questions { get; private set; }
 
     public Quest(int Id, string nameQuest, string characterName, string description, int questionCount, int id_ListQuestions)
@@ -39,21 +41,21 @@ public class Quest
         Description = description;
         HighlightedWords = null;
     }
-    public Quest(int Id, string nameQuest, string characterName, string description, int questionCount, 
-        string highlitedWords, int id_ListQuestions)
-    {
-        ID_quest = Id;
-        NameQuest = nameQuest;
-        CharacterName = characterName;
-        ID_ListQuestions = id_ListQuestions;
+    //public Quest(int Id, string nameQuest, string characterName, string description, int questionCount, 
+    //    string highlitedWords, int id_ListQuestions)
+    //{
+    //    ID_quest = Id;
+    //    NameQuest = nameQuest;
+    //    CharacterName = characterName;
+    //    ID_ListQuestions = id_ListQuestions;
 
-        // По умолчанию сложность Normal - Обычная
-        complexityQuest = Complexity.Normal;
+    //    // По умолчанию сложность Normal - Обычная
+    //    complexityQuest = Complexity.Normal;
 
-        QuestionCount = questionCount;
+    //    QuestionCount = questionCount;
 
-        // Описание квеста и подсказки
-        Description = description;
-        HighlightedWords = highlitedWords;
-    }
+    //    // Описание квеста и подсказки
+    //    Description = description;
+    //    HighlightedWords = highlitedWords;
+    //}
 }

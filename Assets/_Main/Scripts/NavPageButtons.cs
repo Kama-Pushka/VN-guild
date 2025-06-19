@@ -24,9 +24,15 @@ public class NavPageButtons : MonoBehaviour
     GameObject QuestionPrefabs; // TODO
     [SerializeField]
     GameObject QuestionInInterviewPrefab;
+    [SerializeField]
+    GameObject BriefAnsPrefab;
 
     [SerializeField]
     GameObject Journal; // TODO а надо ли на самом деле здесь иметь ссылку на объект журнала??
+    [SerializeField]
+    GameObject Brief;
+    [SerializeField]
+    GameObject Final;
 
     // Взятие компонента из ссылок
     Database Db { get; set; }
@@ -48,6 +54,11 @@ public class NavPageButtons : MonoBehaviour
         // Порядок камер при запуске игры
         LinkQuestCamera.SetActive(false);
         LinkOverlayCamera.SetActive(true);
+    }
+
+    public void ChangeOverlayBackground() // TODO а обратно??? НАДО!!!
+    {
+        Db.MainBackgroundOverlay.GetComponent<Image>().sprite = Resources.Load<Sprite>("Graphics/UI/Background 1"); // TODO rename
     }
 
     /// <summary>
@@ -138,20 +149,9 @@ public class NavPageButtons : MonoBehaviour
             q.transform.localScale = Vector3.one;
         }
 
-        JournalInfoUpdate(Db.CurQuest.NameQuest, Db.CurQuest.Description, Db.CurQuest.CharacterName);
+        //JournalInfoUpdate(Db.CurQuest.NameQuest, Db.CurQuest.Description, Db.CurQuest.CharacterName);     ПЕРЕМЕЩЕНО
 
         OnButtonClick(requiredPage);
-    }
-
-    public void JournalInfoUpdate(string questName, string questDescription, string customerName) 
-    {
-        var questTitle = Journal.transform.GetChild(1).GetChild(4).GetChild(1).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Title
-        var questDesc = Journal.transform.GetChild(1).GetChild(4).GetChild(2).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Desc
-        var customer = Journal.transform.GetChild(1).GetChild(4).GetChild(5).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Customer
-
-        questTitle.text = questName;
-        questDesc.text = questDescription;
-        customer.text = customerName;
     }
 
     // TODO а не будет такого, что выйдя из квеста мы вернемся на выбор вопроса? (нет, кнопки назад при интерью быть не должно)
@@ -244,6 +244,52 @@ public class NavPageButtons : MonoBehaviour
 
         ChangeCamera(); // Db.LinkNavPageBtnGameObject.ChangeCamera(); TODO is null, why??
         NavData.GetComponent<NavOverlayData>().CurrentPage.GetComponent<LoadPreparation>().Updater(); // TODO Только если запускаем Preparation!!!
+
+
+        JournalInfoUpdate(Db.CurQuest.NameQuest, Db.CurQuest.Description, Db.CurQuest.CharacterName);
+        JournalBriefUpdate();
+    }
+
+    public void OnEndBrief(GameObject menu)
+    {
+        OnChangeCameraClick(menu);
+    }
+
+    public void JournalInfoUpdate(string questName, string questDescription, string customerName)
+    {
+        var questTitle = Journal.transform.GetChild(1).GetChild(4).GetChild(1).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Title
+        var questDesc = Journal.transform.GetChild(1).GetChild(4).GetChild(2).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Quest Desc
+        var customer = Journal.transform.GetChild(1).GetChild(4).GetChild(5).gameObject.GetComponent<TextMeshProUGUI>(); // JOURNAL > 1 - Background > 0 - Quest > Customer
+
+        questTitle.text = questName;
+        questDesc.text = questDescription;
+        customer.text = customerName;
+    }
+
+    public void JournalBriefUpdate() 
+    {
+        var brief = Journal.transform.GetChild(1).GetChild(5); // JOURNAL > 1 - Background > 1 - Brief
+        var journalPointList = brief.GetChild(0).GetChild(0).GetChild(0).gameObject; // 1 - Brief > Lists > AvailableQuestions > Buttons    // TODO rename
+        var i = 0;
+
+        foreach (var q in Db.AskedQuestions)
+            foreach (var j in q.JournalPoints) 
+            {
+                var p = Instantiate(BriefAnsPrefab);
+                p.name = $"Point - {i++}";
+                var dragDrop = p.GetComponent<DragDrop>();
+                dragDrop.JournalPoint = j;
+
+                var tmpText = p.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+                tmpText.text = j.Text;
+                p.transform.SetParent(journalPointList.transform);
+
+                p.transform.localPosition = new Vector3(
+                    p.transform.position.x,
+                    p.transform.position.y,
+                    0);
+                p.transform.localScale = Vector3.one;
+            }
     }
 
     // TODO костыль?
@@ -265,6 +311,58 @@ public class NavPageButtons : MonoBehaviour
         CanvasQuest.SetActive(true);
     }
 
+    public void CompilingBrief() 
+    {
+        var stakeholder = Brief.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>();
+        stakeholder.text = string.Join(", ", Db.FinalBrief[0]);
+        var deadline = Brief.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
+        deadline.text = string.Join(", ", Db.FinalBrief[1]);
+        var goal = Brief.transform.GetChild(2).gameObject.GetComponent<TextMeshProUGUI>();
+        goal.text = string.Join(", ", Db.FinalBrief[2]);
+        var requirement = Brief.transform.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>();
+        requirement.text = string.Join(", ", Db.FinalBrief[3]);
+        var helper = Brief.transform.GetChild(4).gameObject.GetComponent<TextMeshProUGUI>();
+        helper.text = string.Join(", ", Db.FinalBrief[4]);
+        var risk = Brief.transform.GetChild(5).gameObject.GetComponent<TextMeshProUGUI>();
+        risk.text = string.Join(", ", Db.FinalBrief[5]);
+        Brief.SetActive(true);
+    }
+
+    public void BriefBack() 
+    {
+        Brief.SetActive(false);
+    }
+
+    public GameObject titleFinal;
+    public GameObject bodyFinal;
+    public void BriefNext() 
+    {
+        Final.SetActive(true);
+        var percent = (Db.BriefPointCount / Db.CurQuest.CorrectBriefPointCount) * 100;
+        Debug.Log(percent);
+
+        var t = titleFinal.GetComponent<TextMeshProUGUI>();
+        var b = bodyFinal.GetComponent<TextMeshProUGUI>();
+
+        if (percent > 75)
+        {
+            t.text = "Отличная работа!\n\nЗаказчик одобрил бриф!";
+        }
+        else 
+        {
+            t.text = "Проблема!\n\nЗаказчик не одобрил бриф!";
+        }
+        b.text = $"Статистика: {Math.Round(percent)}% правильно\n\t                 {100 - Math.Round(percent)}% неправильно";
+    }
+
+    public GameObject prevWindow;
+    public void BriefOpen(GameObject window) // TODO проблемы?
+    {
+        if (prevWindow != null) prevWindow.SetActive(false);
+        window.SetActive(true);
+        prevWindow = window;
+    }
+
     /// <summary>
     /// Функция завершения игры
     /// </summary>
@@ -277,12 +375,22 @@ public class NavPageButtons : MonoBehaviour
     {
         // Выделяем переменные для работы с нумерацией квеста
         // (Забрать номер из названия "Quest - 0" и попадаем к gameObject-у по transform.parent)
+        tmp.transform.parent.parent.parent.parent.parent.GetChild(2).gameObject.SetActive(true); // TODO КОСТЫЛЬ СТРАШНЫЙ
+        tmp.transform.parent.parent.parent.parent.parent.GetChild(0).gameObject.SetActive(false); // TODO КОСТЫЛЬ СТРАШНЫЙ
+
         string[] splitName = tmp.gameObject.transform.parent.gameObject.name.Split(' ');
         int takeNumQuest = int.Parse(splitName[splitName.Length - 1]);
 
         // Сохраняем текущий нажатый квест, для вывода справа, на страницу Choose Quest
         Db.CurQuest = Db.AllQuests[takeNumQuest];
     }
+
+    public void QuestInfoClose(GameObject gameObject) // TODO продолжаем костылять
+    {
+        gameObject.SetActive(false);
+        gameObject.transform.parent.GetChild(0).gameObject.SetActive(true);
+    }
+
     /// <summary>
     /// Функция обработки клика на вопрос, для сохранения Uid вопроса в квесте.
     /// </summary>
@@ -317,6 +425,7 @@ public class NavPageButtons : MonoBehaviour
             CreateQuestion(questionList, que);
         }
 
+        Db.AskedQuestions.Add(selectQuestion);
         Db.CurQuestion = selectQuestion;
         btn.SetActive(false);
 

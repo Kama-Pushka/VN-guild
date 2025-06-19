@@ -33,6 +33,8 @@ namespace Testing
         // Получаем доступ к диалоговой системе, через DialogueSystem
         DialogueSystem ds;
 
+        public GameObject nav;
+
         // Так как мы хотим создать текстового архитектора, то мы создаём переменную
         TextArchitect architect;
 
@@ -142,19 +144,20 @@ namespace Testing
                     // Завершение этапа игры "Интервью"
                     if (Db.CountEntrace == Db.AvailableQuestions.Count) // CurListQuestions.DictAllQuestions.Count    TODO
                     {
+                        nav.GetComponent<NavPageButtons>().OnEndInterview();
                         // Переключаем флаг
-                        Db.IsEndInterview = true;
+                        //Db.IsEndInterview = true;
 
-                        // Выключаем тукую страницу (Этап интервью)
-                        NavData.CurrentPage.SetActive(false);
+                        //// Выключаем тукую страницу (Этап интервью)
+                        //NavData.CurrentPage.SetActive(false);
 
-                        // Сохраняем последнюю страницу
-                        Db.LastPage = NavData.CurrentPage;
+                        //// Сохраняем последнюю страницу
+                        //Db.LastPage = NavData.CurrentPage;
 
-                        // Делаем переход к NavData объекту и от него к странице Preparation - Id : 1
-                        NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
+                        //// Делаем переход к NavData объекту и от него к странице Preparation - Id : 1
+                        //NavData.CurrentPage = NavData.transform.parent.GetChild(1).gameObject;
 
-                        Db.LinkNavPageBtnGameObject.ChangeCamera(); // TODO null(но не null если задать 4 вопроса) (преверить как было до) (ну и почему при задании всех вопросов сцена слетает)
+                        //Db.LinkNavPageBtnGameObject.ChangeCamera(); // TODO null(но не null если задать 4 вопроса) (преверить как было до) (ну и почему при задании всех вопросов сцена слетает)
                     }
                 }
 
